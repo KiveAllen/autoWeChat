@@ -7,12 +7,12 @@ class AnimateConfig:
 
 
 class WeChatConfig:
-    WeChat_PROCESS_NAME = 'WeiXin.exe'
+    WeChat_PROCESS_NAME = 'Weixin.exe'
     APP_NAME = 'WeChatMassTool'
     APP_PROCESS_NAME = 'WeChatMassTool.exe'
     APP_LOCK_NAME = 'WeChatMassTool.lock'
     WINDOW_NAME = '微信'
-    WINDOW_CLASSNAME = 'WeChatMainWndForPC'
+    WINDOW_CLASSNAME = 'Qt51514QWindowIcon'
 
 
 class ViewConfig:

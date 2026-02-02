@@ -8,5 +8,6 @@ cprint~=1.2.2
 comtypes
 fastapi~=0.121.2
 uvicorn~=0.38.0
-pydantic~=2.12.4
+pydantic~=2.12.5
 paho-mqtt~=2.1.0
+# win32gui  # 移除这行，因为它已经被pywin32提供

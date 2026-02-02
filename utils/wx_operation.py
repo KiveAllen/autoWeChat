@@ -1,9 +1,8 @@
 """微信群发消息"""
 
-import re
 import time
 from copy import deepcopy
-from typing import Iterable
+from typing import Iterable, List
 
 import uiautomation as auto
 
@@ -45,10 +44,10 @@ class WxOperation:
         auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL)
         self.visible_flag: bool = False
 
-
     def locate_wechat_window(self):
         if not self.visible_flag:
-            wake_up_window(class_name=WeChat.WINDOW_CLASSNAME, name=WeChat.WINDOW_NAME)
+            wake_up_window(process_name=WeChat.WeChat_PROCESS_NAME)
+            time.sleep(0.5)
             self.wx_window = auto.WindowControl(Name=WeChat.WINDOW_NAME, ClassName=WeChat.WINDOW_CLASSNAME)
             if not self.wx_window.Exists(Interval.MAX_SEARCH_SECOND,
                                          searchIntervalSeconds=Interval.MAX_SEARCH_INTERVAL):
@@ -82,17 +81,24 @@ class WxOperation:
         auto.SetClipboardText(text=name)
         time.sleep(Interval.BASE_INTERVAL)
         self.wx_window.SendKeys(text='{Ctrl}V', waitTime=Interval.BASE_INTERVAL)
-
         # 若有匹配结果，第一个元素的类型为PaneControl
-        search_nodes = self.wx_window.ListControl(foundIndex=2).GetChildren()
-        if not isinstance(search_nodes.pop(0), auto.PaneControl):
-            self.wx_window.SendKeys(text='{Esc}', waitTime=Interval.BASE_INTERVAL)
-            raise ValueError("昵称不匹配")
+        search_nodes = self.wx_window.ListControl(foundIndex=1).GetChildren()
+
         # 只考虑全匹配, 不考虑好友昵称重名, 不考虑好友昵称与群聊重名
-        if search_nodes[0].Name == name:
+        if search_nodes[1].Name == name:
             self.wx_window.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
             time.sleep(Interval.BASE_INTERVAL)
             return True
+
+        elif name in ['文件传输助手', '檔案傳輸', 'File Transfer']:
+            for idx, node in enumerate(search_nodes[3:]):
+                if node.Name == name:
+                    for i in range(idx + 1):
+                        auto.SendKey(auto.SpecialKeyNames['DOWN'], waitTime=Interval.BASE_INTERVAL)
+                    auto.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
+                    time.sleep(Interval.BASE_INTERVAL)
+                    return True
+
         # 无匹配用户, 取消搜索框
         self.wx_window.SendKeys(text='{Esc}', waitTime=Interval.BASE_INTERVAL)
         return False
@@ -135,64 +141,8 @@ class WxOperation:
         """
 
         def should_use_clipboard(text: str):
-            # 检测是否包含emoji表情符号
-            emoji_pattern = re.compile("["
-                                       "\U0001F600-\U0001F64F"  # emoticons
-                                       "\U0001F300-\U0001F5FF"  # symbols & pictographs
-                                       "\U0001F680-\U0001F6FF"  # transport & map symbols
-                                       "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                                       "\U00002500-\U00002BEF"  # chinese char
-                                       "\U00002702-\U000027B0"
-                                       "\U00002702-\U000027B0"
-                                       "\U000024C2-\U0001F251"
-                                       "\U0001f926-\U0001f937"
-                                       "\U00010000-\U0010ffff"
-                                       "\u2640-\u2642"
-                                       "\u2600-\u2B55"
-                                       "\u200d"
-                                       "\u23cf"
-                                       "\u23e9"
-                                       "\u231a"
-                                       "\ufe0f"  # dingbats
-                                       "\u3030"
-                                       "]+", flags=re.UNICODE)
-            return len(text) > 30 or not text.isprintable() or bool(emoji_pattern.search(text))
-
-        def insert_zwsp_after_emoji(text: str) -> str:
-            """
-            统计文本中emoji的数量，在整个字符串末尾添加相应数量的零宽空格 \u200b，
-            避免微信吞字问题。
-            """
-            # 检测emoji表情符号的正则表达式
-            emoji_pattern = re.compile("["
-                                       "\U0001F600-\U0001F64F"  # emoticons
-                                       "\U0001F300-\U0001F5FF"  # symbols & pictographs
-                                       "\U0001F680-\U0001F6FF"  # transport & map symbols
-                                       "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                                       "\U00002500-\U00002BEF"  # chinese char
-                                       "\U00002702-\U000027B0"
-                                       "\U00002702-\U000027B0"
-                                       "\U000024C2-\U0001F251"
-                                       "\U0001f926-\U0001f937"
-                                       "\U00010000-\U0010ffff"
-                                       "\u2640-\u2642"
-                                       "\u2600-\u2B55"
-                                       "\u200d"
-                                       "\u23cf"
-                                       "\u23e9"
-                                       "\u231a"
-                                       "\ufe0f"  # dingbats
-                                       "\u3030"
-                                       "]+", flags=re.UNICODE)
-
-            # 查找所有匹配的emoji
-            emojis_found = emoji_pattern.findall(text)
-
-            # 计算emoji总数量
-            emoji_count = sum(len(emoji_group) for emoji_group in emojis_found)
-
-            # 在文本末尾添加相应数量的零宽空格
-            return text + ('\u200b' * emoji_count)
+            # 简单的策略：如果文本过长或包含特殊字符，则使用剪贴板
+            return len(text) > 30 or not text.isprintable()
 
         for msg in msgs:
             assert msg, "发送的文本内容为空"
@@ -202,7 +152,6 @@ class WxOperation:
             self.input_edit.SendKey(key=auto.SpecialKeyNames['DELETE'], waitTime=wait_time)
 
             if should_use_clipboard(msg):
-                msg = insert_zwsp_after_emoji(msg)
                 auto.SetClipboardText(text=msg)
                 time.sleep(wait_time * 2.5)
                 self.input_edit.SendKeys(text='{Ctrl}v', waitTime=wait_time * 2)
@@ -306,10 +255,9 @@ class WxOperation:
         self.wx_window.ListControl(Name="联系人").ButtonControl(Name="通讯录管理").Click(simulateMove=False)
         # 切换到通讯录管理，相当于切换到弹出来的页面
         contacts_window = auto.GetForegroundControl()
-
         contacts_window.ButtonControl(Name='最大化').Click(simulateMove=False)
-        contacts_window.ButtonControl(Name="最近群聊").Click(simulateMove=False)
 
+        contacts_window.ButtonControl(Name="最近群聊").Click(simulateMove=False)
         time.sleep(Interval.BASE_INTERVAL * 2)
 
         chat_group_name_list = list()
@@ -317,14 +265,15 @@ class WxOperation:
         #
 
         while True:
-            names = [_.TextControl().Name for _ in
-                     contacts_window.PaneControl(foundIndex=5).ListControl().GetChildren()]
+            names: list[str] = [
+                _.TextControl().Name for _ in contacts_window.PaneControl(foundIndex=4).ListControl().GetChildren()
+            ]
             # 如果滚动前后名单未变，认为到达底部
             if names == last_chat_group_names:
                 break
             last_chat_group_names = names
             # 处理当前页的名单
-            chat_group_name_list.extend(names)
+            chat_group_name_list.extend(__iterable=names)
             # 向下滑动
             contacts_window.PaneControl(foundIndex=5).WheelDown(wheelTimes=8, waitTime=Interval.BASE_INTERVAL / 2)
         # 结束时候关闭 "通讯录管理" 窗口
@@ -410,3 +359,8 @@ class WxOperation:
         # 取消微信窗口置顶
         self.wx_window.SetTopmost(isTopmost=False)
 
+
+if __name__ == '__main__':
+    wx = WxOperation()
+    data = wx.get_chat_group_name_list()
+    print(data)
