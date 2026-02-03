@@ -1,5 +1,6 @@
 import uiautomation as auto
 
+
 def detect_wechat_window_info():
     """检测当前所有窗口，找出微信相关的窗口信息"""
     root = auto.GetRootControl()
@@ -16,6 +17,7 @@ def detect_wechat_window_info():
     for i, child in enumerate(children[:20]):  # 显示前20个窗口
         if hasattr(child, 'Name') and hasattr(child, 'ClassName'):
             print(f"{i}: '{child.Name}' - '{child.ClassName}'")
+
 
 if __name__ == "__main__":
     detect_wechat_window_info()

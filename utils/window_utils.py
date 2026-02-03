@@ -28,10 +28,8 @@ def minimize_wechat(class_name, name):
 def wake_up_window(process_name: str = WeChat.WeChat_PROCESS_NAME) -> bool:
     # 方法1：从注册表获取（如果已安装但未运行）
     try:
-        key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE,
-            r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Weixin"
-        )
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Weixin")
         path, _ = winreg.QueryValueEx(key, "InstallLocation")
         winreg.CloseKey(key)
         exe_path = os.path.join(path, process_name)

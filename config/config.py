@@ -1,6 +1,3 @@
-
-
-
 class AnimateConfig:
     SECTION = 'DEFAULT'
     OPTION = 'animate_on_startup'
@@ -37,15 +34,13 @@ class DarkConfig:
         """
 
     # MANUAL STYLES
-    MANUAL_STYLES = {
-        'wechat': '''QTextEdit{background-color: rgb(27, 29, 35); font: 12pt "Microsoft YaHei UI";} 
+    MANUAL_STYLES = {'wechat': '''QTextEdit{background-color: rgb(27, 29, 35); font: 12pt "Microsoft YaHei UI";} 
                     QFrame #frame_sub_1, 
                     QFrame#frame_sub_2, 
                     QFrame#frame_sub_3, 
                     QFrame#frame_sub_4 {
                         border: 2px solid #5D535E;border-radius: 6px;
-                    }''',
-        'file_list_widget': '''QListWidget {
+                    }''', 'file_list_widget': '''QListWidget {
                                     background-color: rgb(27, 29, 35);
                                     border-radius: 5px;
                                     padding: 3px;
@@ -71,8 +66,7 @@ class LightConfig:
         """
 
     # MANUAL STYLES
-    MANUAL_STYLES = {
-        'wechat': '''QTextEdit{
+    MANUAL_STYLES = {'wechat': '''QTextEdit{
                         background-color: #6272a4; 
                         font: 12pt "Microsoft YaHei UI";
                     } 
@@ -82,16 +76,14 @@ class LightConfig:
                     QFrame#frame_sub_4 {
                         border: 2px solid #627282;
                         border-radius: 6px;
-                    }''',
-        'file_list_widget': '''QListWidget {
+                    }''', 'file_list_widget': '''QListWidget {
                                     background-color: #6272a4;
                                     border-radius: 5px;
                                     padding: 3px;
                                     border: 1px solid rgb(45, 45, 58);
                                     font: 12pt "Microsoft YaHei UI";
                                     color: #f8f8f2;
-                                }'''
-    }
+                                }'''}
 
 
 class IntervalConfig:

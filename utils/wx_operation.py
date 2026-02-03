@@ -1,38 +1,12 @@
 """微信群发消息"""
 
 import time
-from copy import deepcopy
 from typing import Iterable
 
 import uiautomation as auto
 
 from config import (WeChat, Interval)
-from utils import (copy_files_to_clipboard, wake_up_window)
-
-
-def click_image_below_offset(image_path: str, offset_y: int = 50, confidence: float = 0.8):
-    """
-    在微信窗口中识别图片并在其下方指定偏移处点击
-
-    Args:
-        image_path: 图片文件路径
-        offset_y: 在识别结果下方多少像素处点击，默认50像素
-        :param offset_y:
-        :param image_path:
-        :param confidence:
-    """
-    from utils.image_clicker import ImageClicker
-    clicker = ImageClicker()
-
-    # 点击图片下方指定像素
-    success = clicker.click_below_image(image_path, offset_y=offset_y, confidence=confidence)
-
-    if success:
-        print(f"成功点击图片 {image_path} 下方 {offset_y}px 位置")
-    else:
-        print(f"点击失败，未找到图片 {image_path}")
-
-    return success
+from utils import (copy_files_to_clipboard, wake_up_window, click_below_image)
 
 
 class WxOperation:
@@ -43,8 +17,6 @@ class WxOperation:
     ----------
     wx_window: auto.WindowControl
         微信控制窗口
-    input_edit: wx_window.EditControl
-        聊天界面输入框编辑控制窗口
 
     Methods:
     -------
@@ -54,8 +26,6 @@ class WxOperation:
         发送文本。
     __send_file(*filepath):
         发送文件
-    get_friend_list(tag, num):
-        可指定tag，获取好友num页的好友数量
     send_msg(name, msgs, file_paths=None, add_remark_name=False, at_everyone=False,
             text_interval=0.05, file_interval=0.5) -> None:
         向指定的好友或群聊发送消息和文件。支持同时发送文本和文件。
@@ -63,9 +33,7 @@ class WxOperation:
 
     def __init__(self):
         self.wx_window = None
-        self.input_edit = None
         self.wx_window: auto.WindowControl
-        self.input_edit: auto.EditControl
         auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL)
         self.visible_flag: bool = False
 
@@ -77,20 +45,9 @@ class WxOperation:
             if not self.wx_window.Exists(Interval.MAX_SEARCH_SECOND,
                                          searchIntervalSeconds=Interval.MAX_SEARCH_INTERVAL):
                 raise Exception('微信似乎并没有登录!')
-            self.input_edit = self.wx_window.EditControl()
             self.visible_flag = bool(self.visible_flag)
         # 微信窗口置顶
         self.wx_window.SetTopmost(isTopmost=True)
-
-    def __match_nickname(self, name) -> bool:
-        """获取当前面板的好友昵称"""
-        print(f"DEBUG: 正在匹配昵称: {name}")  # 输出name的日志
-        self.input_edit = self.wx_window.EditControl(Name=name)
-        if self.input_edit.Exists(Interval.MAX_SEARCH_SECOND, searchIntervalSeconds=Interval.MAX_SEARCH_INTERVAL):
-            print(f"DEBUG: 找到匹配的昵称: {name}")  # 输出name的日志
-            return True
-        print(f"DEBUG: 未找到匹配的昵称: {name}")  # 输出name的日志
-        return False
 
     def __goto_chat_box(self, name: str) -> bool:
         """
@@ -110,54 +67,13 @@ class WxOperation:
         time.sleep(Interval.BASE_INTERVAL)
         self.wx_window.SendKeys(text='{Ctrl}V', waitTime=Interval.BASE_INTERVAL)
 
-        # 若有匹配结果，第一个元素的类型为PaneControl
-        # search_nodes = self.wx_window.ListControl(foundIndex=1).GetChildren()
-
-        # 只考虑全匹配, 不考虑好友昵称重名, 不考虑好友昵称与群聊重名
-        # if search_nodes[1].Name == name:
-        #     self.wx_window.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
-        #     time.sleep(Interval.BASE_INTERVAL)
-        #     return True
-        #
-        # elif name in ['文件传输助手', '檔案傳輸', 'File Transfer']:
-        #     for idx, node in enumerate(search_nodes[3:]):
-        #         if node.Name == name:
-        #             for i in range(idx + 1):
-        #                 auto.SendKey(auto.SpecialKeyNames['DOWN'], waitTime=Interval.BASE_INTERVAL)
-        #             auto.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
-        #             time.sleep(Interval.BASE_INTERVAL)
-        #             return True
-
         image_path = 'assets/images/group.png'
-        if click_image_below_offset(image_path=image_path, offset_y=50):
+        if click_below_image(image_path=image_path, offset_y=50):
             return True
 
         # 无匹配用户, 取消搜索框
         self.wx_window.SendKeys(text='{Esc}', waitTime=Interval.BASE_INTERVAL)
         return False
-
-    def at_at_everyone(self, group_chat_name: str):
-        """
-        @全部人的操作
-        Args:
-            group_chat_name(str): 群聊名称
-
-        """
-        # 个人 定位 聊天框，取 foundIndex=2，因为左侧聊天List 也可以匹配到foundIndex=1
-        # 群聊 定位 聊天框 需要带上群人数，故会匹配失败，所以匹配失败的就是群聊
-        result = self.wx_window.TextControl(Name=group_chat_name, foundIndex=2)
-        # 只要匹配不上，说明这是个群聊窗口
-        if not result.Exists(Interval.MAX_SEARCH_SECOND, searchIntervalSeconds=Interval.MAX_SEARCH_INTERVAL):
-            # 寻找是否有 @所有人 的选项
-            self.input_edit.SendKeys(text='{Shift}2', waitTime=Interval.BASE_INTERVAL)
-            everyone = self.wx_window.ListItemControl(Name='所有人')
-            if not everyone.Exists(Interval.MAX_SEARCH_SECOND, searchIntervalSeconds=Interval.MAX_SEARCH_INTERVAL):
-                self.input_edit.SendKeys(text='{Ctrl}A', waitTime=Interval.BASE_INTERVAL)
-                self.input_edit.SendKeys(text='{Delete}', waitTime=Interval.BASE_INTERVAL)
-                return
-            self.input_edit.SendKeys(text='{Up}', waitTime=Interval.BASE_INTERVAL)
-            self.input_edit.SendKeys(text='{Enter}', waitTime=Interval.BASE_INTERVAL)
-            self.input_edit.SendKeys(text='{Enter}', waitTime=Interval.BASE_INTERVAL)
 
     def __send_text(self, *msgs, wait_time, send_shortcut) -> None:
         """
@@ -215,104 +131,6 @@ class WxOperation:
 
             time.sleep(wait_time)  # 等待发送动作完成
 
-    def get_friend_list(self, tag: str = None) -> list:
-        """
-        获取微信好友名称.
-
-        Args:
-            tag(str): 可选参数，如不指定，则获取所有好友
-
-        Returns:
-            list
-        """
-        # 定位到微信窗口
-        self.locate_wechat_window()
-        # 取消微信窗口置顶
-        self.wx_window.SetTopmost(isTopmost=False)
-        # 点击 通讯录管理
-        self.wx_window.ButtonControl(Name="通讯录").Click(simulateMove=False)
-        self.wx_window.ListControl(Name="联系人").ButtonControl(Name="通讯录管理").Click(simulateMove=False)
-        # 切换到通讯录管理，相当于切换到弹出来的页面
-        contacts_window = auto.GetForegroundControl()
-        contacts_window.ButtonControl(Name='最大化').Click(simulateMove=False)
-
-        if tag:
-            try:
-                contacts_window.ButtonControl(Name="标签").Click(simulateMove=False)
-                contacts_window.PaneControl(Name=tag).Click(simulateMove=False)
-                time.sleep(Interval.BASE_INTERVAL * 2)
-            except LookupError:
-                contacts_window.SendKey(auto.SpecialKeyNames['ESC'])
-                raise LookupError(f'找不到 {tag} 标签')
-
-        name_list = list()
-        last_names = None
-        while True:
-            # TODO 修改成使用 foundIndex 的方式
-            try:
-                nodes = contacts_window.ListControl(foundIndex=2).GetChildren()
-            except LookupError:
-                nodes = contacts_window.ListControl().GetChildren()
-            cur_names = [node.TextControl().Name for node in nodes]
-
-            # 如果滚动前后名单未变，认为到达底部
-            if cur_names == last_names:
-                break
-            last_names = cur_names
-            # 处理当前页的名单
-            for node in nodes:
-                # TODO 如果有需要, 可以处理成导出为两列的csv格式
-                nick_name = node.TextControl().Name  # 用户名
-                remark_name = node.ButtonControl(foundIndex=2).Name  # 用户备注名，索引1会错位，索引2是备注名，索引3是标签名
-                name_list.append(remark_name if remark_name else nick_name)
-            # 向下滚动页面
-            contacts_window.WheelDown(wheelTimes=8, waitTime=Interval.BASE_INTERVAL / 2)
-        # 结束时候关闭 "通讯录管理" 窗口
-        contacts_window.SendKey(auto.SpecialKeyNames['ESC'])
-        # 简单去重，但是存在误判（如果存在同名的好友), 保持获取时候的顺序
-        return list(dict.fromkeys(name_list))
-
-    def get_chat_group_name_list(self, ):
-        """
-        获取微信群聊名称列表.
-
-        Returns:
-            list
-        """
-        # 定位到微信窗口
-        self.locate_wechat_window()
-        # 取消微信窗口置顶
-        self.wx_window.SetTopmost(isTopmost=False)
-        # 点击 通讯录管理
-        self.wx_window.ButtonControl(Name="通讯录").Click(simulateMove=False)
-        self.wx_window.ListControl(Name="联系人").ButtonControl(Name="通讯录管理").Click(simulateMove=False)
-        # 切换到通讯录管理，相当于切换到弹出来的页面
-        contacts_window = auto.GetForegroundControl()
-        contacts_window.ButtonControl(Name='最大化').Click(simulateMove=False)
-
-        contacts_window.ButtonControl(Name="最近群聊").Click(simulateMove=False)
-        time.sleep(Interval.BASE_INTERVAL * 2)
-
-        chat_group_name_list = list()
-        last_chat_group_names = None
-        #
-
-        while True:
-            names: list[str] = [_.TextControl().Name for _ in
-                                contacts_window.PaneControl(foundIndex=4).ListControl().GetChildren()]
-            # 如果滚动前后名单未变，认为到达底部
-            if names == last_chat_group_names:
-                break
-            last_chat_group_names = names
-            # 处理当前页的名单
-            chat_group_name_list.extend(__iterable=names)
-            # 向下滑动
-            contacts_window.PaneControl(foundIndex=5).WheelDown(wheelTimes=8, waitTime=Interval.BASE_INTERVAL / 2)
-        # 结束时候关闭 "通讯录管理" 窗口
-        contacts_window.SendKey(auto.SpecialKeyNames['ESC'])
-        # 简单去重，但是存在误判（如果存在同名的好友), 保持获取时候的顺序
-        return list(dict.fromkeys(chat_group_name_list))
-
     def get_group_chat_list(self) -> list:
         """获取群聊通讯录中的用户名称"""
         name_list = list()
@@ -326,9 +144,8 @@ class WxOperation:
             name_list.append(item.ButtonControl().Name)
         return name_list
 
-    def send_msg(self, name, msgs=None, file_paths=None,
-                 text_interval=Interval.SEND_TEXT_INTERVAL, file_interval=Interval.SEND_FILE_INTERVAL,
-                 send_shortcut='{Enter}') -> None:
+    def send_msg(self, name, msgs=None, file_paths=None, text_interval=Interval.SEND_TEXT_INTERVAL,
+                 file_interval=Interval.SEND_FILE_INTERVAL, send_shortcut='{Enter}') -> None:
         """
         发送消息，可同时发送文本和文件（至少选一项
 
@@ -336,8 +153,6 @@ class WxOperation:
             name(str):必选参数，接收消息的好友名称, 可以单发
             msgs(Iterable[str], Optional): 可选参数，发送的文本消息
             file_paths(Iterable[str], Optional):可选参数，发送的文件路径
-            add_remark_name(bool): 可选参数，是否添加备注名称发送
-            at_everyone(bool): 可选参数，是否@全部人
             text_interval(float): 可选参数，默认为0.05
             file_interval(float): 可选参数，默认为0.5
             send_shortcut(str): 可选参数，默认为 Enter
@@ -369,7 +184,7 @@ class WxOperation:
 
         # 设置输入框为当前焦点
         image_path = 'assets/images/emoji.png'
-        if not click_image_below_offset(image_path=image_path, offset_y=50):
+        if not click_below_image(image_path=image_path, offset_y=50):
             raise NameError('群聊不存在')
 
         if msgs:
@@ -379,9 +194,3 @@ class WxOperation:
 
         # 取消微信窗口置顶
         self.wx_window.SetTopmost(isTopmost=False)
-
-
-if __name__ == '__main__':
-    wx = WxOperation()
-    data = wx.get_chat_group_name_list()
-    print(data)
