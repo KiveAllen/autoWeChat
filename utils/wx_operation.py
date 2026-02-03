@@ -131,19 +131,6 @@ class WxOperation:
 
             time.sleep(wait_time)  # 等待发送动作完成
 
-    def get_group_chat_list(self) -> list:
-        """获取群聊通讯录中的用户名称"""
-        name_list = list()
-        auto.ButtonControl(Name='聊天信息').Click()
-        time.sleep(0.5)
-        chat_members_win = self.wx_window.ListControl(Name='聊天成员')
-        if not chat_members_win.Exists():
-            return list()
-        self.wx_window.ButtonControl(Name='查看更多').Click()
-        for item in chat_members_win.GetChildren():
-            name_list.append(item.ButtonControl().Name)
-        return name_list
-
     def send_msg(self, name, msgs=None, file_paths=None, text_interval=Interval.SEND_TEXT_INTERVAL,
                  file_interval=Interval.SEND_FILE_INTERVAL, send_shortcut='{Enter}') -> None:
         """
