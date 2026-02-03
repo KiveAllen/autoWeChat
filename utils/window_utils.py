@@ -5,6 +5,7 @@ import winreg
 import win32con
 import win32gui
 
+from config import (WeChat)
 from utils.process_utils import get_wechat_path
 
 
@@ -24,7 +25,7 @@ def minimize_wechat(class_name, name):
         win32gui.SendMessage(hwnd, win32con.WM_CLOSE, 0, 0)
 
 
-def wake_up_window(process_name: str = 'Weixin.exe') -> bool:
+def wake_up_window(process_name: str = WeChat.WeChat_PROCESS_NAME) -> bool:
     # 方法1：从注册表获取（如果已安装但未运行）
     try:
         key = winreg.OpenKey(

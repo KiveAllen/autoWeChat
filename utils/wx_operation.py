@@ -326,7 +326,7 @@ class WxOperation:
             name_list.append(item.ButtonControl().Name)
         return name_list
 
-    def send_msg(self, name, msgs=None, file_paths=None, add_remark_name=False, at_everyone=False,
+    def send_msg(self, name, msgs=None, file_paths=None,
                  text_interval=Interval.SEND_TEXT_INTERVAL, file_interval=Interval.SEND_FILE_INTERVAL,
                  send_shortcut='{Enter}') -> None:
         """
@@ -368,20 +368,9 @@ class WxOperation:
             raise NameError('搜索失败')
 
         # 设置输入框为当前焦点
-        # self.input_edit = self.wx_window.EditControl(Name=name)
-        # self.input_edit.SetFocus()
         image_path = 'assets/images/emoji.png'
         if not click_image_below_offset(image_path=image_path, offset_y=50):
             raise NameError('群聊不存在')
-
-
-
-        # # @所有人
-        # if at_everyone:
-        #     auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL)
-        #     self.at_at_everyone(group_chat_name=name)
-        #     auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL * 25)
-
 
         if msgs:
             self.__send_text(*msgs, wait_time=text_interval, send_shortcut=send_shortcut)
