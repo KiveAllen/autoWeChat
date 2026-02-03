@@ -2,12 +2,37 @@
 
 import time
 from copy import deepcopy
-from typing import Iterable, List
+from typing import Iterable
 
 import uiautomation as auto
 
 from config import (WeChat, Interval)
 from utils import (copy_files_to_clipboard, wake_up_window)
+
+
+def click_image_below_offset(image_path: str, offset_y: int = 50, confidence: float = 0.8):
+    """
+    在微信窗口中识别图片并在其下方指定偏移处点击
+
+    Args:
+        image_path: 图片文件路径
+        offset_y: 在识别结果下方多少像素处点击，默认50像素
+        :param offset_y:
+        :param image_path:
+        :param confidence:
+    """
+    from utils.image_clicker import ImageClicker
+    clicker = ImageClicker()
+
+    # 点击图片下方指定像素
+    success = clicker.click_below_image(image_path, offset_y=offset_y, confidence=confidence)
+
+    if success:
+        print(f"成功点击图片 {image_path} 下方 {offset_y}px 位置")
+    else:
+        print(f"点击失败，未找到图片 {image_path}")
+
+    return success
 
 
 class WxOperation:
@@ -59,9 +84,12 @@ class WxOperation:
 
     def __match_nickname(self, name) -> bool:
         """获取当前面板的好友昵称"""
+        print(f"DEBUG: 正在匹配昵称: {name}")  # 输出name的日志
         self.input_edit = self.wx_window.EditControl(Name=name)
         if self.input_edit.Exists(Interval.MAX_SEARCH_SECOND, searchIntervalSeconds=Interval.MAX_SEARCH_INTERVAL):
+            print(f"DEBUG: 找到匹配的昵称: {name}")  # 输出name的日志
             return True
+        print(f"DEBUG: 未找到匹配的昵称: {name}")  # 输出name的日志
         return False
 
     def __goto_chat_box(self, name: str) -> bool:
@@ -81,23 +109,28 @@ class WxOperation:
         auto.SetClipboardText(text=name)
         time.sleep(Interval.BASE_INTERVAL)
         self.wx_window.SendKeys(text='{Ctrl}V', waitTime=Interval.BASE_INTERVAL)
+
         # 若有匹配结果，第一个元素的类型为PaneControl
-        search_nodes = self.wx_window.ListControl(foundIndex=1).GetChildren()
+        # search_nodes = self.wx_window.ListControl(foundIndex=1).GetChildren()
 
         # 只考虑全匹配, 不考虑好友昵称重名, 不考虑好友昵称与群聊重名
-        if search_nodes[1].Name == name:
-            self.wx_window.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
-            time.sleep(Interval.BASE_INTERVAL)
-            return True
+        # if search_nodes[1].Name == name:
+        #     self.wx_window.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
+        #     time.sleep(Interval.BASE_INTERVAL)
+        #     return True
+        #
+        # elif name in ['文件传输助手', '檔案傳輸', 'File Transfer']:
+        #     for idx, node in enumerate(search_nodes[3:]):
+        #         if node.Name == name:
+        #             for i in range(idx + 1):
+        #                 auto.SendKey(auto.SpecialKeyNames['DOWN'], waitTime=Interval.BASE_INTERVAL)
+        #             auto.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
+        #             time.sleep(Interval.BASE_INTERVAL)
+        #             return True
 
-        elif name in ['文件传输助手', '檔案傳輸', 'File Transfer']:
-            for idx, node in enumerate(search_nodes[3:]):
-                if node.Name == name:
-                    for i in range(idx + 1):
-                        auto.SendKey(auto.SpecialKeyNames['DOWN'], waitTime=Interval.BASE_INTERVAL)
-                    auto.SendKey(key=auto.SpecialKeyNames['ENTER'], waitTime=Interval.BASE_INTERVAL)
-                    time.sleep(Interval.BASE_INTERVAL)
-                    return True
+        image_path = 'assets/images/group.png'
+        if click_image_below_offset(image_path=image_path, offset_y=50):
+            return True
 
         # 无匹配用户, 取消搜索框
         self.wx_window.SendKeys(text='{Esc}', waitTime=Interval.BASE_INTERVAL)
@@ -146,17 +179,17 @@ class WxOperation:
 
         for msg in msgs:
             assert msg, "发送的文本内容为空"
-            self.input_edit.SendKeys(text='{Ctrl}a', waitTime=wait_time)
-            self.input_edit.SendKey(key=auto.SpecialKeyNames['DELETE'], waitTime=wait_time)
-            self.input_edit.SendKeys(text='{Ctrl}a', waitTime=wait_time)
-            self.input_edit.SendKey(key=auto.SpecialKeyNames['DELETE'], waitTime=wait_time)
+            self.wx_window.SendKeys(text='{Ctrl}a', waitTime=wait_time)
+            self.wx_window.SendKey(key=auto.SpecialKeyNames['DELETE'], waitTime=wait_time)
+            self.wx_window.SendKeys(text='{Ctrl}a', waitTime=wait_time)
+            self.wx_window.SendKey(key=auto.SpecialKeyNames['DELETE'], waitTime=wait_time)
 
             if should_use_clipboard(msg):
                 auto.SetClipboardText(text=msg)
                 time.sleep(wait_time * 2.5)
-                self.input_edit.SendKeys(text='{Ctrl}v', waitTime=wait_time * 2)
+                self.wx_window.SendKeys(text='{Ctrl}v', waitTime=wait_time * 2)
             else:
-                self.input_edit.SendKeys(text=msg, waitTime=wait_time * 2)
+                self.wx_window.SendKeys(text=msg, waitTime=wait_time * 2)
 
             # 设置到剪切板再黏贴到输入框
             self.wx_window.SendKeys(text=f'{send_shortcut}', waitTime=wait_time * 2)
@@ -176,7 +209,7 @@ class WxOperation:
         # 复制文件到剪切板
         if copy_files_to_clipboard(file_paths=file_paths):
             # 粘贴到输入框
-            self.input_edit.SendKeys(text='{Ctrl}V', waitTime=wait_time)
+            self.wx_window.SendKeys(text='{Ctrl}V', waitTime=wait_time)
             # 按下回车键
             self.wx_window.SendKeys(text=f'{send_shortcut}', waitTime=wait_time / 2)
 
@@ -265,9 +298,8 @@ class WxOperation:
         #
 
         while True:
-            names: list[str] = [
-                _.TextControl().Name for _ in contacts_window.PaneControl(foundIndex=4).ListControl().GetChildren()
-            ]
+            names: list[str] = [_.TextControl().Name for _ in
+                                contacts_window.PaneControl(foundIndex=4).ListControl().GetChildren()]
             # 如果滚动前后名单未变，认为到达底部
             if names == last_chat_group_names:
                 break
@@ -331,27 +363,27 @@ class WxOperation:
             raise TypeError("发送的文件路径必须是可迭代的")
 
         # 如果当前面板已经是需发送好友, 则无需再次搜索跳转
-        if not self.__match_nickname(name=name):
-            if not self.__goto_chat_box(name=name):
-                raise NameError('昵称不匹配')
+        # if not self.__match_nickname(name=name):
+        if not self.__goto_chat_box(name=name):
+            raise NameError('搜索失败')
 
         # 设置输入框为当前焦点
-        self.input_edit = self.wx_window.EditControl(Name=name)
-        self.input_edit.SetFocus()
+        # self.input_edit = self.wx_window.EditControl(Name=name)
+        # self.input_edit.SetFocus()
+        image_path = 'assets/images/emoji.png'
+        if not click_image_below_offset(image_path=image_path, offset_y=50):
+            raise NameError('群聊不存在')
 
-        # @所有人
-        if at_everyone:
-            auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL)
-            self.at_at_everyone(group_chat_name=name)
-            auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL * 25)
 
-        # TODO
-        #  添加备注可以多做一个选项，添加到每条消息的前面，如xxx，早上好
-        if msgs and add_remark_name:
-            new_msgs = deepcopy(list(msgs))
-            new_msgs.insert(0, name)
-            self.__send_text(*new_msgs, wait_time=text_interval, send_shortcut=send_shortcut)
-        elif msgs:
+
+        # # @所有人
+        # if at_everyone:
+        #     auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL)
+        #     self.at_at_everyone(group_chat_name=name)
+        #     auto.SetGlobalSearchTimeout(Interval.BASE_INTERVAL * 25)
+
+
+        if msgs:
             self.__send_text(*msgs, wait_time=text_interval, send_shortcut=send_shortcut)
         if file_paths:
             self.__send_file(*file_paths, wait_time=file_interval, send_shortcut=send_shortcut)
