@@ -6,45 +6,46 @@ MQTT服务主入口文件
 import json
 import time
 
+try:
+    from config.local_config import MQTT_CONFIGS, HEALTH_CHECK_INTERVAL
+except ImportError:
+    # 如果本地配置文件不存在，使用默认配置
+    MQTT_CONFIGS = [{"server": "localhost", "port": 1883, "username": "test", "password": "test",
+        "subscribe_topic": "wx/test/message"}]
+    HEALTH_CHECK_INTERVAL = 30
+
 from service.mqtt_service import WxMqtt
 
 
 def main():
-    # MQTT服务器配置 - 第一个客户端
-    server1 = "8.138.207.63"
-    port1 = 1883
-    username1 = "wx_controller"
-    password1 = "123456"
-    subscribe_topic1 = "wx/1/message"
+    # 从本地配置文件读取MQTT配置
 
-    # 第二个MQTT客户端配置（可以根据需要修改配置）
-    server2 = "36.141.20.236"
-    port2 = 21883
-    username2 = "notify_bot"  # 建议使用不同用户名
-    password2 = "zhixing123"
-    subscribe_topic2 = "wx/2/message"
+    # 创建并启动MQTT服务
+    mqtt_clients = []
+    for i, config in enumerate(MQTT_CONFIGS):
+        mqtt_client = WxMqtt(config["server"], config["port"], config["username"], config["password"],
+            config["subscribe_topic"])
+        mqtt_client.start()
+        mqtt_clients.append(mqtt_client)
+        print(f"MQTT客户端 {i + 1} 已启动: {config['server']}:{config['port']}")
 
-    # 创建并启动第一个MQTT服务
-    mqtt1 = WxMqtt(server1, port1, username1, password1, subscribe_topic1)
-    mqtt1.start()
-
-    # 创建并启动第二个MQTT服务
-    mqtt2 = WxMqtt(server2, port2, username2, password2, subscribe_topic2)
-    mqtt2.start()
-
-    print("MQTT服务已启动")
+    print(f"MQTT服务已启动，共 {len(mqtt_clients)} 个客户端")
     print("按 Ctrl+C 停止服务")
-    message = {"pyHealthStatus": "OK"}
 
     try:
         # 保持主线程运行
         while True:
-            # 向两个客户端都发布消息
-            mqtt1.publish("wx/1/message", json.dumps(message))
-            mqtt2.publish("wx/2/message", json.dumps(message))
-            time.sleep(10)
+            # 向所有客户端发布健康检查消息
+            for i, (mqtt_client, config) in enumerate(zip(mqtt_clients, MQTT_CONFIGS)):
+                message = {f"{config['server']} healthStatus": "OK"}
+                mqtt_client.publish(config["subscribe_topic"], json.dumps(message))
+                print(f"已向客户端 {i + 1} 发送健康检查: {config['server']}")
+
+            time.sleep(HEALTH_CHECK_INTERVAL)
     except KeyboardInterrupt:
         print("\n正在停止MQTT服务...")
+        for i, mqtt_client in enumerate(mqtt_clients):
+            print(f"正在停止客户端 {i + 1}...")
         print("MQTT服务已停止")
 
 
