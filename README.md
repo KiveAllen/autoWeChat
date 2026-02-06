@@ -45,7 +45,9 @@ autoWeChat/
 ├── config/                # 配置文件
 │   └── config.py          # 系统配置
 ├── main.py               # 直接调用入口
-└── mqtt_main.py          # MQTT服务入口
+├── mqtt_main.py          # MQTT服务入口
+├── mqtt_main_build.py # Windows打包脚本
+└── mqtt_main.spec # PyInstaller配置文件
 ```
 
 ## 📋 环境要求
@@ -261,7 +263,7 @@ mqtt2.start()
 
 ### 开发环境搭建
 ```bash
-git clone https://github.com/yourname/autoWeChat.git
+git clone https://github.com/KiveAllen/autoWeChat.git
 cd autoWeChat
 pip install -r requirements.txt
 ```
