@@ -10,12 +10,18 @@ a = Analysis(
     datas=[
         # 包含配置文件目录
         ('config', 'config'),
-        # 如果有其他数据文件也可以在这里添加
+        # 包含核心模块
+        ('core', 'core'),
+        ('service', 'service'),
+        ('utils', 'utils'),
+        # 包含必要的资源文件
+        ('requirements.txt', '.'),
     ],
     hiddenimports=[
         # 显式包含可能被自动检测遗漏的模块
         'paho.mqtt.client',
         'core.wx_operation_service',
+        'core.wx_operation',
         'service.mqtt_service',
         'utils.config_utils',
         'utils.window_utils',
@@ -24,8 +30,17 @@ a = Analysis(
         'utils.file_io_utils',
         'utils.hash_utils',
         'utils.image_clicker',
+        'utils',
+        'config',
+        'config.config',
         'cv2',  # OpenCV
         'numpy',
+        'numpy.core._multiarray_umath',
+        'numpy.core._multiarray_tests',
+        'numpy.linalg.lapack_lite',
+        'numpy.random.common',
+        'numpy.random.bounded_integers',
+        'numpy.random.mtrand',
         'pyautogui',
         'uiautomation',
         'win32gui',
@@ -33,6 +48,23 @@ a = Analysis(
         'win32api',
         'pywintypes',
         'pythoncom',
+        'comtypes',
+        'chardet',
+        'urllib',
+        'threading',
+        'queue',
+        'concurrent.futures',
+        'tempfile',
+        'typing',
+        'json',
+        'traceback',
+        'time',
+        'urllib.request',
+        'encodings',
+        'encodings.cp936',
+        'encodings.utf_8',
+        'encodings.gbk',
+        'encodings.gb2312',
     ],
     hookspath=[],
     hooksconfig={},
@@ -45,6 +77,9 @@ a = Analysis(
         'sklearn',
         'tensorflow',
         'torch',
+        'IPython',
+        'jupyter',
+        'notebook',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
@@ -67,7 +102,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,  # 使用UPX压缩（如果可用）
+    upx=False,  # 暂时禁用UPX压缩以避免潜在的DLL问题
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,  # 显示控制台窗口

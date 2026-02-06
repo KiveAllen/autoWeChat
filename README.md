@@ -123,6 +123,30 @@ mqtt_client.start()
 }
 ```
 
+## 📦 打包部署
+
+### 1. 配置本地参数
+首先需要创建本地配置文件 [local_config.py](file:///E:/code/autoWeChat/config/local_config.py)，可以复制模板文件并填入实际配置：
+
+```bash
+cp config/local_config_template.py config/local_config.py
+```
+
+然后编辑 `config/local_config.py` 文件，填入您的MQTT服务器配置信息。
+
+### 2. 一键打包
+在虚拟环境中使用PyInstaller和提供的spec文件进行一键打包：
+
+```bash
+# 确保已安装所需依赖
+pip install -r requirements.txt
+
+# 使用PyInstaller打包
+pyinstaller mqtt_main.spec
+```
+
+打包完成后，生成的可执行文件将在 `dist/` 目录下，文件名为 `WeChatMQTTService.exe`。
+
 ## 📖 API文档
 
 ### 核心类说明
