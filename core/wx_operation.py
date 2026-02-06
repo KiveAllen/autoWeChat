@@ -8,8 +8,6 @@ import uiautomation as auto
 
 from config import (WeChat, Interval)
 from utils import (copy_files_to_clipboard, wake_up_window, click_below_image)
-import os
-import sys
 
 
 class WxOperation:

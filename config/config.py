@@ -9,6 +9,7 @@ class WeChatConfig:
     APP_PROCESS_NAME = 'WeChatMassTool.exe'
     APP_LOCK_NAME = 'WeChatMassTool.lock'
     WINDOW_NAME = '微信'
+    # WINDOW_CLASSNAME = 'mmui::MainWindow' # 有些电脑显示的类名可能不同
     WINDOW_CLASSNAME = 'Qt51514QWindowIcon' # 若是不正确可以使用detect_window.py查询微信窗口信息
 
 
