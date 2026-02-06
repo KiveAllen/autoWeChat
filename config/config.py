@@ -9,7 +9,7 @@ class WeChatConfig:
     APP_PROCESS_NAME = 'WeChatMassTool.exe'
     APP_LOCK_NAME = 'WeChatMassTool.lock'
     WINDOW_NAME = '微信'
-    WINDOW_CLASSNAME = 'Qt51514QWindowIcon'
+    WINDOW_CLASSNAME = 'Qt51514QWindowIcon' # 若是不正确可以使用detect_window.py查询微信窗口信息
 
 
 class ViewConfig:
@@ -49,7 +49,7 @@ class DarkConfig:
                                     color: #f8f8f2;
                                 }'''
 
-    }
+                     }
 
 
 class LightConfig:

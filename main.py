@@ -1,4 +1,4 @@
-from utils import WxOperation
+from core import WxOperation
 
 
 def main():

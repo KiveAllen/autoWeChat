@@ -1,5 +1,6 @@
 """微信群发消息"""
 
+import re
 import time
 from typing import Iterable
 
@@ -89,25 +90,54 @@ class WxOperation:
             None
         """
 
-        def should_use_clipboard(text: str):
-            # 简单的策略：如果文本过长或包含特殊字符，则使用剪贴板
-            return len(text) > 30 or not text.isprintable()
+        def insert_zwsp_after_emoji(text: str) -> str:
+            """
+            统计文本中emoji的数量，在整个字符串末尾添加相应数量的零宽空格 \u200b，
+            避免微信吞字问题。
+            """
+            # 检测emoji表情符号的正则表达式
+            emoji_pattern = re.compile("["
+                                       "\U0001F600-\U0001F64F"  # emoticons
+                                       "\U0001F300-\U0001F5FF"  # symbols & pictographs
+                                       "\U0001F680-\U0001F6FF"  # transport & map symbols
+                                       "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                                       "\U00002500-\U00002BEF"  # chinese char
+                                       "\U00002702-\U000027B0"
+                                       "\U00002702-\U000027B0"
+                                       "\U000024C2-\U0001F251"
+                                       "\U0001f926-\U0001f937"
+                                       "\U00010000-\U0010ffff"
+                                       "\u2640-\u2642"
+                                       "\u2600-\u2B55"
+                                       "\u200d"
+                                       "\u23cf"
+                                       "\u23e9"
+                                       "\u231a"
+                                       "\ufe0f"  # dingbats
+                                       "\u3030"
+                                       "]+", flags=re.UNICODE)
+
+            # 查找所有匹配的emoji
+            emojis_found = emoji_pattern.findall(text)
+
+            # 计算emoji总数量
+            emoji_count = sum(len(emoji_group) for emoji_group in emojis_found)
+
+            # 在文本末尾添加相应数量的零宽空格
+            return text + ('\u200b' * emoji_count)
 
         for msg in msgs:
             assert msg, "发送的文本内容为空"
             self.wx_window.SendKeys(text='{Ctrl}a', waitTime=wait_time)
             self.wx_window.SendKey(key=auto.SpecialKeyNames['DELETE'], waitTime=wait_time)
-            self.wx_window.SendKeys(text='{Ctrl}a', waitTime=wait_time)
-            self.wx_window.SendKey(key=auto.SpecialKeyNames['DELETE'], waitTime=wait_time)
-
-            if should_use_clipboard(msg):
-                auto.SetClipboardText(text=msg)
-                time.sleep(wait_time * 2.5)
-                self.wx_window.SendKeys(text='{Ctrl}v', waitTime=wait_time * 2)
-            else:
-                self.wx_window.SendKeys(text=msg, waitTime=wait_time * 2)
 
             # 设置到剪切板再黏贴到输入框
+            msg = insert_zwsp_after_emoji(msg)
+            auto.SetClipboardText(text=msg)
+            time.sleep(wait_time * 2.5)
+            self.wx_window.SendKeys(text='{Ctrl}v', waitTime=wait_time * 2)
+
+            # 发送消息
             self.wx_window.SendKeys(text=f'{send_shortcut}', waitTime=wait_time * 2)
 
     def __send_file(self, *file_paths, wait_time, send_shortcut) -> None:
