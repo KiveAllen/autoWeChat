@@ -16,6 +16,8 @@ a = Analysis(
         ('utils', 'utils'),
         # 包含必要的资源文件
         ('requirements.txt', '.'),
+        # 添加assets资源目录
+        ('assets', 'assets'),
     ],
     hiddenimports=[
         # 显式包含可能被自动检测遗漏的模块

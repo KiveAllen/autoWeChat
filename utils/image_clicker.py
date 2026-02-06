@@ -3,6 +3,19 @@ from typing import Tuple, Optional
 import cv2
 import numpy as np
 import pyautogui
+import os
+import sys
+
+
+def get_resource_path(relative_path):
+    """获取资源文件的绝对路径"""
+    try:
+        # PyInstaller创建临时文件夹，并将路径存储在 _MEIPASS 中
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 def find_image_on_screen(image_path: str, confidence: float = 0.8) -> Optional[Tuple[int, int, int, int]]:
@@ -17,10 +30,13 @@ def find_image_on_screen(image_path: str, confidence: float = 0.8) -> Optional[T
         匹配区域的坐标 (left, top, width, height)，如果没有找到则返回None
     """
     try:
+        # 使用资源路径处理函数获取正确的图片路径
+        full_image_path = get_resource_path(image_path)
+
         # 读取模板图像
-        template = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+        template = cv2.imread(full_image_path, cv2.IMREAD_UNCHANGED)
         if template is None:
-            print(f"无法加载图片: {image_path}")
+            print(f"无法加载图片: {full_image_path}")
             return None
 
         # 获取当前屏幕截图
